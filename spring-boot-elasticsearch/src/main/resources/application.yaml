@@ -1,0 +1,9 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: spring-boot-elasticsearch
+  elasticsearch:
+    rest:
+      uris: http://192.168.121.100:9200
