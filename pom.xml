@@ -13,6 +13,7 @@
         <module>spring-boot-jpa</module>
         <module>spring-boot-mybatis</module>
         <module>spring-boot-rabbitmq</module>
+        <module>spring-boot-wechat</module>
     </modules>
     <packaging>pom</packaging>
 
@@ -120,6 +121,12 @@
                 <groupId>joda-time</groupId>
                 <artifactId>joda-time</artifactId>
                 <version>${joda.version}</version>
+            </dependency>
+            <!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient -->
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpclient</artifactId>
+                <version>4.5.12</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

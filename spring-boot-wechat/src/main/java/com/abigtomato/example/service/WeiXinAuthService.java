@@ -1,0 +1,142 @@
+package com.abigtomato.example.service;
+
+import com.abigtomato.example.utils.ConstantWxUtil;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.entity.ContentType;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.util.EntityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+
+@Service
+public class WeiXinAuthService {
+
+    private static final Logger logger = LoggerFactory.getLogger(WeiXinAuthService.class);
+
+    public static final String WX_AUTH_LOGIN_URL = "https://api.weixin.qq.com/sns/oauth2/access_token";
+    public static final String WX_USERINFO_URL = "https://api.weixin.qq.com/sns/userinfo";
+
+    // AppId
+    public static final String WX_APP_ID = ConstantWxUtil.WX_OPEN_APP_ID;
+    // AppSecret
+    public static final String WX_APP_KEY = ConstantWxUtil.WX_OPEN_APP_SECRET;
+
+    public String checkLogin(String code) {
+        // 获取授权 access_token
+        String loginUrl = WX_AUTH_LOGIN_URL + "?appid=" +
+                WX_APP_ID + "&secret=" +
+                WX_APP_KEY + "&code=" + code +
+                "&grant_type=authorization_code";
+        String loginRet = WeiXinAuthService.get(loginUrl);
+
+        JSONObject grantObj = JSON.parseObject(loginRet);
+        String errcode = grantObj.getString("errcode");
+        if (!StringUtils.isEmpty(errcode)) {
+            logger.error("login weixin error"+loginRet);
+            return null;
+        }
+
+        String openId = grantObj.getString("openid");
+        if (StringUtils.isEmpty(openId)) {
+            logger.error("login weixin getOpenId error"+loginRet);
+            return null;
+        }
+
+        String accessToken = grantObj.getString("access_token");
+        String expiresIn = grantObj.getString("expires_in");
+        String refreshToken = grantObj.getString("refresh_token");
+        String scope = grantObj.getString("scope");
+
+        // 获取用户信息
+        String userRet = WeiXinAuthService.get(WX_USERINFO_URL + "?access_token=" + accessToken + "&openid=" + openId);
+        JSONObject userObj = JSON.parseObject(userRet);
+
+//        UserInfoData userInfo = new UserInfoData();
+//        userInfo.setOpenId(openId);
+//        userInfo.setAuthToken(accessToken);
+//        userInfo.setAuthRefreshToken(refreshToken);
+//        userInfo.setScope(scope);
+//        userInfo.setExpiresIn(Integer.valueOf(expiresIn));
+//        String nickname = userObj.optString("nickname");
+//        String sex = userObj.optString("sex");
+//        String userImg = userObj.optString("headimgurl");
+//        String unionid = userObj.optString("unionid");
+//        userInfo.setName(nickname);
+//        userInfo.setIcon(userImg);
+//        userInfo.setGender(sex);
+//        userInfo.setLoginId(unionid);
+        return "userInfo";
+    }
+
+    public static String get(String url) {
+        String body = null;
+        try (CloseableHttpClient httpClient = HttpClientBuilder.create().build()) {
+            logger.info("create httppost:" + url);
+
+            HttpGet get = new HttpGet(url);
+            get.addHeader("Accept-Charset","utf-8");
+            HttpResponse response = sendRequest(httpClient, get);
+            body = parseResponse(response);
+        } catch (IOException e) {
+            logger.error("send post request failed: {}", e.getMessage());
+        }
+
+        return body;
+    }
+
+    private static String paramsToString(Map<String, String> params) {
+        StringBuilder sb = new StringBuilder();
+        try{
+            for (String key : params.keySet()) {
+                sb.append(String.format("&%s=%s", key, URLEncoder.encode(params.get(key), StandardCharsets.UTF_8.toString())));
+            }
+        }catch(UnsupportedEncodingException e){
+            logger.warn("{}: encode url parameters failed", e.getMessage());
+        }
+        return sb.length() > 0 ? "?".concat(sb.substring(1)) : "";
+    }
+
+    private static HttpResponse sendRequest(CloseableHttpClient httpclient, HttpGet httpost)
+            throws ClientProtocolException, IOException {
+        HttpResponse response = null;
+        response = httpclient.execute(httpost);
+        return response;
+    }
+
+    private static String parseResponse(HttpResponse response) {
+        logger.info("get response from http server..");
+        HttpEntity entity = response.getEntity();
+
+        logger.info("response status: " + response.getStatusLine());
+        Charset charset = ContentType.getOrDefault(entity).getCharset();
+        if (charset != null) {
+            logger.info(charset.name());
+        }
+
+        String body = null;
+        try {
+            body = EntityUtils.toString(entity, "utf-8");
+            logger.info("body " + body);
+        } catch (IOException e) {
+            logger.warn("{}: cannot parse the entity", e.getMessage());
+        }
+
+        return body;
+    }
+}

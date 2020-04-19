@@ -1,0 +1,15 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: wechat-example
+
+wx:
+  open:
+    # 微信开放平台app id
+    app_id: xxx
+    # 微信开放平台app密钥
+    app_secret: xxx
+    # 微信开放平台，重定向url（域名需要在微信开放平台配置）
+    redirect_url: xxx
